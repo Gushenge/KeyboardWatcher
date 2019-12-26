@@ -13,6 +13,7 @@ import com.gushenge.keyboard.utils.DisplayMetricsUtils
  */
 class KeyboardWatcher  {
     private var globalLayoutListener: GlobalLayoutListener? = null
+    private var simpleGlobalLayoutListener: SimpleGlobalLayoutListener? = null
     private lateinit var context: Context
     private var decorView: View? = null
     /**
@@ -30,20 +31,34 @@ class KeyboardWatcher  {
         return this
     }
 
+    fun init(context: Context, decorView: View, listener: (Boolean, Int) -> Unit): KeyboardWatcher {
+        this.context = context
+        this.decorView = decorView
+        simpleGlobalLayoutListener = SimpleGlobalLayoutListener(listener)
+        addSoftKeyboardChangedListener()
+        return this
+    }
+
     /**
      * 释放资源
      */
     fun release() {
         removeSoftKeyboardChangedListener()
         globalLayoutListener = null
+        simpleGlobalLayoutListener = null
     }
 
     /**
      * 取消软键盘状态变化监听
      */
     private fun removeSoftKeyboardChangedListener() {
-        if (globalLayoutListener != null && null != decorView) {
-            decorView!!.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
+        decorView?.apply {
+            globalLayoutListener?.let {
+                viewTreeObserver.removeOnGlobalLayoutListener(it)
+            }
+            simpleGlobalLayoutListener?.let {
+                viewTreeObserver.removeOnGlobalLayoutListener(it)
+            }
         }
     }
 
@@ -51,9 +66,14 @@ class KeyboardWatcher  {
      * 注册软键盘状态变化监听
      */
     private fun addSoftKeyboardChangedListener() {
-        if (globalLayoutListener != null && null != decorView) {
+        decorView?.apply {
             removeSoftKeyboardChangedListener()
-            decorView!!.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
+            globalLayoutListener?.let {
+                viewTreeObserver.addOnGlobalLayoutListener(it)
+            }
+            simpleGlobalLayoutListener?.let {
+                viewTreeObserver.addOnGlobalLayoutListener(it)
+            }
         }
     }
 
@@ -71,6 +91,26 @@ class KeyboardWatcher  {
         //如果屏幕高度和Window可见区域高度差值大于0，则表示软键盘显示中，否则软键盘为隐藏状态。
         val heightDifference = displayScreenHeight - outRect.bottom
         return Pair(heightDifference > 0, heightDifference)
+    }
+
+    inner class SimpleGlobalLayoutListener(listener: (Boolean, Int) -> Unit) : OnGlobalLayoutListener {
+        private var isKeyboardShow = false
+        private val onKeyboardStateChangeListener: (Boolean, Int) -> Unit
+        override fun onGlobalLayout() {
+            if (null != decorView) {
+                val pair = isKeyboardShowing(context, decorView!!)
+                if (pair.first) {
+                    onKeyboardStateChangeListener.invoke(true.also { isKeyboardShow = it }, pair.second!!)
+                } else if (isKeyboardShow) {
+                    onKeyboardStateChangeListener.invoke(false.also { isKeyboardShow = it }, pair.second!!)
+                }
+            }
+        }
+
+        init {
+            isKeyboardShow = false
+            this.onKeyboardStateChangeListener = listener
+        }
     }
 
     inner class GlobalLayoutListener(onKeyboardStateChangeListener: OnKeyboardStateChangeListener?) : OnGlobalLayoutListener {
