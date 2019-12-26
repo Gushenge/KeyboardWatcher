@@ -3,10 +3,12 @@
 最完善的键盘弹出和键盘隐藏监听处理。相对于原库进行了修改
 迁移至AndroidX,适配Android10,用kotlin重写了
 
+## 源库地址
+    https://github.com/18511084155/KeyboardWatcher
 
 ## Gradle 引用
 
-implementation 'com.github.Gushenge:KeyboardWatcher:1.0.2'
+    implementation 'com.github.Gushenge:KeyboardWatcher:1.0.1'
 
 ### 示例代码
 
